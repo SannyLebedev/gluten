@@ -80,8 +80,8 @@ func (p *Promise) Get(ctx context.Context) (interface{}, error) {
 	}
 }
 
-// IsRealised returns true if this Promise has been realised, false otherwise.
-func (p *Promise) IsRealised() bool {
+// Realized returns true if this Promise has been realized, false otherwise.
+func (p *Promise) Realized() bool {
 	if p.done == nil {
 		panic("Promise not initialised")
 	}
