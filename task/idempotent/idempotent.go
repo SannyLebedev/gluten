@@ -47,7 +47,7 @@ func New() (idem *Idempotent) {
 // in some other way outside of the task.
 func (idem *Idempotent) RunSync(f func()) bool {
 	if !idem.initialised {
-		panic("Idempotent task queue not initialised")
+		panic("Idempotent task runner not initialised")
 	}
 
 	select {
@@ -72,7 +72,7 @@ func (idem *Idempotent) RunSync(f func()) bool {
 // f must not panic.
 func (idem *Idempotent) RunEventually(f func()) bool {
 	if !idem.initialised {
-		panic("Idempotent task queue not initialised")
+		panic("Idempotent task runner not initialised")
 	}
 
 	select {
@@ -83,10 +83,8 @@ func (idem *Idempotent) RunEventually(f func()) bool {
 	go func() {
 		<-idem.ready
 		<-idem.queue
-		defer func() {
-			idem.ready <- struct{}{}
-		}()
 		f()
+		idem.ready <- struct{}{}
 	}()
 	return true
 }
