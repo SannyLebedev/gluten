@@ -170,7 +170,10 @@ func TestHalfOpen(t *testing.T) {
 	if breaker.state != stateHalfOpen {
 		t.Error("Expected breaker to be half-open")
 	}
-	if !IsErrTripped(breaker.Register(Anomaly)) {
+	if breaker.Register(Anomaly) != nil {
+		t.Error("Expected breaker to not error on Register from half-open state")
+	}
+	if !IsErrTripped(breaker.IsTripped()) {
 		t.Error("Expected breaker to immedately trip from half-open state")
 	}
 	time.Sleep(2 * time.Millisecond)

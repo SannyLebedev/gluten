@@ -24,6 +24,7 @@
 //
 // How a circuit breaker detects that it is tripped or how it should untrip is
 // up to the particular implementation: Read the documentation for each breaker
+// and how it acts. Or make your own based on any of the implementations here!
 package circuit
 
 import (
@@ -181,7 +182,8 @@ func (c *CountBreaker) trip() bool {
 	c.mutex.Lock()
 	// Has someone else tripped the breaker while we waited for the lock? If so,
 	// just bail out.
-	if c.state == stateClosed {
+	state := atomic.LoadUint32(&c.state)
+	if state == stateClosed {
 		c.mutex.Unlock()
 		return false
 	}
@@ -197,7 +199,8 @@ func (c *CountBreaker) trip() bool {
 	c.resetTime.Store(time.Now().Add(totalTime))
 	c.successiveFailures++
 	c.mutex.Unlock()
-	return true
+	// Do not return error if we trip from a half-open state
+	return state == stateOpen
 }
 
 // IsTripped returns an ErrTripped error iff the circuit breaker is tripped.
