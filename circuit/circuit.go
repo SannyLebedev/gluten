@@ -2,13 +2,14 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package circuitbreaker contains tools to detect and prevent unnecessary load
-// on systems that may be partially or completely down.
+// Package circuit contains circuit breakers to detect and prevent unnecessary
+// load on systems that may be partially or completely down.
 //
-// The typical use from this package is to use one kind of CircuitBreaker. Using
-// any CircuitBreaker will follow the same pattern:
+// The typical use from this package is to use some kind of Breaker for
+// each system you connect to. Using any Breaker will follow the same
+// pattern:
 //
-//	breaker := circuitbreaker.NewBreaker(params)
+//	breaker := circuit.NewBreaker(params)
 //	// ...
 //	if err := breaker.IsTripped(); err != nil {
 //		// short-circuit and handle error in some way
@@ -20,7 +21,10 @@
 //		pager.Alert(err)
 //	}
 //	return res, err
-package circuitbreaker
+//
+// How a circuit breaker detects that it is tripped or how it should untrip is
+// up to the particular implementation: Read the documentation for each breaker
+package circuit
 
 import (
 	"math/rand"
@@ -60,9 +64,9 @@ const (
 	Fatal
 )
 
-// CircuitBreaker is the interface for any circuit breaker
-type CircuitBreaker interface {
-	// IsTripped returns ErrTripped if the CircuitBreaker is tripped; i.e. the
+// Breaker is the interface for any circuit breaker
+type Breaker interface {
+	// IsTripped returns ErrTripped if the Breaker is tripped; i.e. the
 	// error rate is so high that you should not call the service. Otherwise it
 	// should return nil.
 	IsTripped() error
@@ -120,14 +124,14 @@ const (
 // fatalities within a specified time window. If the amount of
 // anomalies/fatalities go over the specified threshold within a single time
 // window, the count breaker will trip and cause an outage for at least
-// BackoffDuration time (see params). When the duration's up, the count breaker
-// will be in a half-open state. If the first request(s) within a half-open
-// state are anomalies/fatalities, the count breaker will immediately trip and
-// wait with an exponential timeout (up to MaxBackoff).
+// BackoffDuration time (see CountBreakerParams). When the duration's up, the
+// count breaker will be in a half-open state. If the first request(s) within a
+// half-open state are anomalies/fatalities, the count breaker will immediately
+// trip and wait with a randomized exponential timeout (up to MaxBackoff).
 //
 // The timewindow is not rolling: If you receive 4 anomalies in the last 5
 // seconds of a time window, the anomaly count will still be reset to 0 when the
-// time window is up.
+// time window is reset.
 type CountBreaker struct {
 	numAnomalies       uint32
 	numFatalities      uint32
