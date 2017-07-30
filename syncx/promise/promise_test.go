@@ -46,30 +46,41 @@ func TestSequentialReadWrite(t *testing.T) {
 func TestTimeout(t *testing.T) {
 	p := NewIntPromise()
 	ctx, _ := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	var toplevelErr error
+	var errMut sync.Mutex
 	var wg sync.WaitGroup
 	for i := 0; i < 10; i++ {
 		wg.Add(1)
 		go func() {
 			_, err := p.Get(ctx)
 			if err != context.DeadlineExceeded {
-				t.Fatal(err)
+				errMut.Lock()
+				toplevelErr = err
+				errMut.Unlock()
 			}
 			wg.Done()
 		}()
 	}
 	wg.Wait()
+	if toplevelErr != nil {
+		t.Fatal(toplevelErr)
+	}
 }
 
 func TestEventualReturn(t *testing.T) {
 	p := NewIntPromise()
 	ctx, _ := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	var toplevelErr error
+	var errMut sync.Mutex
 	var wg sync.WaitGroup
 	for i := 0; i < 10; i++ {
 		wg.Add(1)
 		go func() {
 			_, err := p.Get(ctx)
 			if err != nil {
-				t.Fatal(err.Error())
+				errMut.Lock()
+				toplevelErr = err
+				errMut.Unlock()
 			}
 			wg.Done()
 		}()
@@ -77,4 +88,7 @@ func TestEventualReturn(t *testing.T) {
 	time.Sleep(1 * time.Millisecond)
 	p.Deliver(10)
 	wg.Wait()
+	if toplevelErr != nil {
+		t.Fatal(toplevelErr)
+	}
 }
