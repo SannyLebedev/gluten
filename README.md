@@ -3,6 +3,9 @@
 Utility library for Go, mostly focused around higher level concurrency
 datatypes.
 
+The package documentation is available at
+http://godoc.org/github.com/hypirion/gluten
+
 ## Installation and Usage
 
 The import path for the package is *github.com/hypirion/gluten* (NS: All in
