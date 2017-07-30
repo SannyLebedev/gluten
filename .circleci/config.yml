@@ -4,7 +4,7 @@ jobs:
     docker:
       - image: circleci/golang
 
-    working_directory: /go/src/github.com/{{ORG_NAME}}/{{REPO_NAME}}
+    working_directory: /go/src/github.com/hypirion/gluten
     steps:
       - checkout
       - run: go get -v -t -d ./...
