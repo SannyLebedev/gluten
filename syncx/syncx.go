@@ -37,11 +37,33 @@ type SuspendLocker interface {
 	RUnlock()
 }
 
+// SuspendLockerOpts is a struct different options you can provide while
+// creating a SuspendLocker. You can provide nil if you want the default
+// behaviour.
+type SuspendLockerOpts struct {
+	// When AlreadySuspended is set, the suspend locker assumes the Suspender
+	// is already in a suspended mode.
+	AlreadySuspended bool
+	// If set, MaxIdleTime will be the maximal time the Suspender will be open
+	// after a call to [R]Lock.
+	MaxIdleTime time.Duration
+}
+
 // NewSuspendLocker returns a SuspendLocker.
-func NewSuspendLocker(s iox.Suspender, suspended bool) SuspendLocker {
+func NewSuspendLocker(s iox.Suspender, slo *SuspendLockerOpts) SuspendLocker {
+	if slo == nil {
+		slo = &SuspendLockerOpts{}
+	}
+	if slo.MaxIdleTime != 0 {
+		return newAutoSuspendLocker(s, slo)
+	}
+	return newSuspendLocker(s, slo)
+}
+
+func newSuspendLocker(s iox.Suspender, slo *SuspendLockerOpts) *rawSuspendLocker {
 	return &rawSuspendLocker{
 		resource:  s,
-		suspended: suspended,
+		suspended: slo.AlreadySuspended,
 	}
 }
 
@@ -56,7 +78,7 @@ func (rsl *rawSuspendLocker) Close() error {
 	rsl.Lock()
 	defer rsl.Unlock()
 	if rsl.closed {
-		return iox.ErrClosed
+		return nil
 	}
 	err := rsl.resource.Close()
 	if err == nil {
@@ -132,16 +154,13 @@ func (rsl *rawSuspendLocker) RUnlock() {
 	rsl.mut.RUnlock()
 }
 
-// NewAutoSuspendLocker returns a SuspendLocker, which will automatically
-// suspend the resource after an amount of idleness. Idleness is the duration
-// since last time Lock or RLock was called on this SuspendLocker.
-func NewAutoSuspendLocker(s iox.Suspender, suspended bool, maxIdle time.Duration) SuspendLocker {
-	locker := NewSuspendLocker(s, suspended)
+func newAutoSuspendLocker(s iox.Suspender, slo *SuspendLockerOpts) SuspendLocker {
+	locker := newSuspendLocker(s, slo)
 	trySuspend := func() { locker.Suspend() }
 	return &autoSuspendLocker{
-		rawSuspendLocker: locker.(*rawSuspendLocker),
-		maxIdle:          maxIdle,
-		timer:            time.AfterFunc(maxIdle, trySuspend),
+		rawSuspendLocker: locker,
+		maxIdle:          slo.MaxIdleTime,
+		timer:            time.AfterFunc(slo.MaxIdleTime, trySuspend),
 	}
 }
 
