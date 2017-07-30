@@ -45,7 +45,7 @@ func TestSequentialReadWrite(t *testing.T) {
 
 func TestTimeout(t *testing.T) {
 	p := NewIntPromise()
-	ctx, _ := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	ctx, cancelCtx := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	var toplevelErr error
 	var errMut sync.Mutex
 	var wg sync.WaitGroup
@@ -62,6 +62,7 @@ func TestTimeout(t *testing.T) {
 		}()
 	}
 	wg.Wait()
+	cancelCtx()
 	if toplevelErr != nil {
 		t.Fatal(toplevelErr)
 	}
@@ -69,7 +70,7 @@ func TestTimeout(t *testing.T) {
 
 func TestEventualReturn(t *testing.T) {
 	p := NewIntPromise()
-	ctx, _ := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	ctx, cancelCtx := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	var toplevelErr error
 	var errMut sync.Mutex
 	var wg sync.WaitGroup
@@ -88,6 +89,7 @@ func TestEventualReturn(t *testing.T) {
 	time.Sleep(1 * time.Millisecond)
 	p.Deliver(10)
 	wg.Wait()
+	cancelCtx()
 	if toplevelErr != nil {
 		t.Fatal(toplevelErr)
 	}
