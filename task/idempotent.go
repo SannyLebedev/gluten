@@ -2,11 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package idempotent contains the type Idempotent, which can be used for time
-// dependent idempotent tasks. Typically, this is used for eventually consistent
-// work (Example: DNS), but could also be used to avoid doing unnecessary work
-// when updates happen quickly (e.g. cache updates).
-package idempotent
+package task
 
 // Idempotent is a task runner designed for time dependent idempotent tasks: If
 // it is okay to throw away some tasks, provided one one of the tasks will be
@@ -28,8 +24,8 @@ type Idempotent struct {
 	initialised bool
 }
 
-// New creates a new idempotent task runner.
-func New() (idem *Idempotent) {
+// NewIdempotent creates a new idempotent task runner.
+func NewIdempotent() (idem *Idempotent) {
 	idem = new(Idempotent)
 	idem.queue = make(chan struct{}, 1)
 	idem.ready = make(chan struct{}, 1)
@@ -64,12 +60,10 @@ func (idem *Idempotent) RunSync(f func()) bool {
 	return true
 }
 
-// RunEventually runs the task f eventually if there are no other tasks waiting
-// to be run. If there are other tasks waiting to be run, this does nothing.
-// Returns true if the task will be run eventually or straight away, false
-// otherwise.
-//
-// f must not panic.
+// RunEventually runs the task f in its own goroutined eventually, if there are
+// no other tasks waiting to be run. If there are other tasks waiting to be run,
+// this does nothing. Returns true if the task will be run eventually or
+// straight away, false otherwise.
 func (idem *Idempotent) RunEventually(f func()) bool {
 	if !idem.initialised {
 		panic("Idempotent task runner not initialised")

@@ -2,9 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package promise implements a promise type. This has nothing to do with
-// JavaScript promises; You should consider this equivalent to Clojure's
-// promises.
+// Package promise implements a promise type. A promise is a type embedding a
+// value which is, or will be available after an unspecified amount of time.
 package promise
 
 import (

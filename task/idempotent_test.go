@@ -1,7 +1,7 @@
 // Copyright 2017 Jean Niklas L'orange.  All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-package idempotent
+package task
 
 import (
 	"testing"
@@ -30,7 +30,7 @@ func (e *intVal) fastSet(v int) (func(), <-chan struct{}) {
 
 func TestIdempotentWait1(t *testing.T) {
 	var val intVal
-	idem := New()
+	idem := NewIdempotent()
 
 	ran := idem.RunSync(val.slowSet(1))
 	if !ran {
@@ -43,7 +43,7 @@ func TestIdempotentWait1(t *testing.T) {
 
 func TestIdempotentWait2(t *testing.T) {
 	var val intVal
-	idem := New()
+	idem := NewIdempotent()
 
 	// perform a non-idempotent operation, which, although is not correct usage,
 	// will validate that the call to RunSync will run.
@@ -60,7 +60,7 @@ func TestIdempotentWait2(t *testing.T) {
 
 func TestIdempotentWaitMany(t *testing.T) {
 	var val intVal
-	idem := New()
+	idem := NewIdempotent()
 	for i := 0; i < 10; i++ {
 		idem.RunEventually(val.slowSet(10))
 	}
@@ -73,7 +73,7 @@ func TestIdempotentWaitMany(t *testing.T) {
 
 func TestIdempotentEventually1(t *testing.T) {
 	var val intVal
-	idem := New()
+	idem := NewIdempotent()
 
 	f, ch := val.fastSet(10)
 	idem.RunEventually(f)
@@ -89,7 +89,7 @@ func TestIdempotentEventually1(t *testing.T) {
 
 func TestIdempotentEventually2(t *testing.T) {
 	var val intVal
-	idem := New()
+	idem := NewIdempotent()
 
 	idem.RunEventually(val.slowSet(5))
 	time.Sleep(1 * time.Millisecond)
@@ -110,7 +110,7 @@ func TestIdempotentEventually2(t *testing.T) {
 
 func TestIdempotentEventually3(t *testing.T) {
 	var val intVal
-	idem := New()
+	idem := NewIdempotent()
 
 	f, ch := val.fastSet(10)
 	willRun := idem.RunEventually(f)
