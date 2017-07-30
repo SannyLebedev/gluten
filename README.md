@@ -1,20 +1,19 @@
 # gluten
 
+[![GoDoc](https://godoc.org/github.com/hyPiRion/gluten?status.svg)](https://godoc.org/github.com/hyPiRion/gluten)
+
 Utility library for Go, mostly focused around higher level concurrency
 datatypes.
 
-The package documentation is available at
-http://godoc.org/github.com/hypirion/gluten
-
 ## Installation and Usage
 
-The import path for the package is *github.com/hypirion/gluten* (NS: All in
-lowercase).
+The import path for the package is *github.com/hyPiRion/gluten* (NB: Note the
+case in my username, sorry about that).
 
 To install it, run:
 
 ```shell
-go get github.com/hypirion/gluten
+go get github.com/hyPiRion/gluten
 ```
 
 I'll attempt to make this backwards compatible, but there's no guarantee that

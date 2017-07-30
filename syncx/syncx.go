@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hypirion/gluten/iox"
+	"github.com/hyPiRion/gluten/iox"
 )
 
 // SuspendLocker is a read-write lock on top of a suspendable resource. All

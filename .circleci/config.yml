@@ -4,7 +4,7 @@ jobs:
     docker:
       - image: circleci/golang
 
-    working_directory: /go/src/github.com/hypirion/gluten
+    working_directory: /go/src/github.com/hyPiRion/gluten
     steps:
       - checkout
       - run: .circleci/setup.sh
