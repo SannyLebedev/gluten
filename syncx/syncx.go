@@ -7,11 +7,76 @@
 package syncx
 
 import (
+	"io"
 	"sync"
 	"time"
 
 	"github.com/hyPiRion/gluten/iox"
 )
+
+// CloseLocker is a read-write lock on top of a closable resource. All
+// implementations from this package provide an idempotent, threadsafe io.Closer
+// interface on top of the resource, along with the read-write lock.
+//
+// CloseLockers are typically used inside other types which wrap a closeable
+// resource.
+type CloseLocker interface {
+	io.Closer
+	// Lock acquires write lock on this locker.
+	Lock()
+	// Unlock releases the write lock on this locker.
+	Unlock()
+	// RLock attempts to acquire a read lock. If the resource is closed, then this
+	// call returns an error and does not acquire a read lock on the resource.
+	RLock() error
+	// RUnlock releases a read lock on this locker.
+	RUnlock()
+}
+
+type rawCloseLocker struct {
+	mut      sync.RWMutex
+	closed   bool
+	resource io.Closer
+}
+
+func (rcl *rawCloseLocker) Close() error {
+	rcl.Lock()
+	defer rcl.Unlock()
+	if rcl.closed {
+		return nil
+	}
+	err := rcl.resource.Close()
+	if err == nil {
+		rcl.closed = true
+	}
+	return err
+}
+
+func (rcl *rawCloseLocker) Lock() {
+	rcl.mut.Lock()
+}
+
+func (rcl *rawCloseLocker) Unlock() {
+	rcl.mut.Unlock()
+}
+
+func (rcl *rawCloseLocker) RLock() error {
+	rcl.mut.RLock()
+	if rcl.closed {
+		rcl.mut.RUnlock()
+		return iox.ErrClosed
+	}
+	return nil
+}
+
+func (rcl *rawCloseLocker) RUnlock() {
+	rcl.mut.RUnlock()
+}
+
+// NewCloseLocker returns a new CloserLocker over c.
+func NewCloseLocker(c io.Closer) CloseLocker {
+	return &rawCloseLocker{resource: c}
+}
 
 // SuspendLocker is a read-write lock on top of a suspendable resource. All
 // implementations from this package provide an idempotent, threadsafe Suspender
@@ -49,7 +114,7 @@ type SuspendLockerOpts struct {
 	MaxIdleTime time.Duration
 }
 
-// NewSuspendLocker returns a SuspendLocker.
+// NewSuspendLocker returns a SuspendLocker over s.
 func NewSuspendLocker(s iox.Suspender, slo *SuspendLockerOpts) SuspendLocker {
 	if slo == nil {
 		slo = &SuspendLockerOpts{}
@@ -67,6 +132,8 @@ func newSuspendLocker(s iox.Suspender, slo *SuspendLockerOpts) *rawSuspendLocker
 	}
 }
 
+// TODO: Embed CloseLocker inside this one? Or not? Duplication of the resouce
+// itself, but that's just a pointer. Hmmm.
 type rawSuspendLocker struct {
 	mut       sync.RWMutex
 	closed    bool

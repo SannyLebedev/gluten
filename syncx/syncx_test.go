@@ -20,6 +20,50 @@ const (
 	suspendStateClosed
 )
 
+var errDummyCloser = errors.New("dummy closer close error")
+
+type dummyCloser struct {
+	closed bool
+}
+
+func (dc *dummyCloser) Close() error {
+	if dc.closed {
+		return errDummyCloser
+	}
+	dc.closed = true
+	return nil
+}
+
+func TestCloseLocker(t *testing.T) {
+	cl := NewCloseLocker(&dummyCloser{})
+	// Test a couple of times
+	for i := 0; i < 10; i++ {
+		err := cl.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	err := cl.RLock()
+	if !iox.IsErrClosed(err) {
+		t.Fatalf("Expected err to be ErrClosed, but was %s", err)
+	}
+
+	cl = NewCloseLocker(&dummyCloser{closed: true}) // To force error
+	for i := 0; i < 10; i++ {
+		err := cl.Close()
+		if err != errDummyCloser {
+			t.Fatal(err)
+		}
+	}
+	err = cl.RLock()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cl.RUnlock()
+	cl.Lock()
+	defer cl.Unlock()
+}
+
 type dummySuspender struct {
 	mut          sync.Mutex
 	suspendState int
