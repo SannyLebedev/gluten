@@ -79,6 +79,19 @@ type Breaker interface {
 	Register(ResponseType) error
 }
 
+// Reseter is an interface for circuit breakers that end up in "closed" state,
+// which will be reset at a certain point in time.
+type Reseter interface {
+	ResetDuration() time.Duration
+}
+
+// BreakReseter is the interface that groups the basic Breaker and Sleeper
+// methods.
+type BreakReseter interface {
+	Breaker
+	Reseter
+}
+
 // CountBreakerParams are the parameters used to create a count breaker.
 type CountBreakerParams struct {
 	// MaxAnomalies is the maximal amount of anomalies the count breaker is
@@ -214,6 +227,22 @@ func (c *CountBreaker) IsTripped() error {
 		return ErrTripped{c.serviceName}
 	}
 	panic("Implementation error in CountBreaker")
+}
+
+// ResetDuration returns the duration the circuit breaker is back in a
+// non-closed state. If the count breaker is already in a non-closed state,
+// 0 is returned.
+func (c *CountBreaker) ResetDuration() time.Duration {
+	state := atomic.LoadUint32(&c.state)
+	if state != stateClosed {
+		return 0
+	}
+	now := time.Now()
+	resetTime := c.resetTime.Load().(time.Time)
+	if resetTime.Before(now) {
+		return 0
+	}
+	return resetTime.Sub(now)
 }
 
 // Register registers the response type of an action. If this particular

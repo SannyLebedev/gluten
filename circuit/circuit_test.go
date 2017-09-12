@@ -151,6 +151,29 @@ func TestSingleTrip(t *testing.T) {
 	}
 }
 
+func TestCountReset(t *testing.T) {
+	params := CountBreakerParams{
+		MaxAnomalies: 1,
+		MaxBackoff:   2 * time.Millisecond,
+	}
+	breaker := NewCountBreaker("test", params)
+	duration := breaker.ResetDuration()
+	if duration != 0 {
+		t.Fatalf("Duration was nonzero immediately after creation: %s", duration)
+	}
+	if breaker.Register(Anomaly) != nil {
+		t.Error("Breaker immediately tripped")
+	}
+	if !IsErrTripped(breaker.Register(Anomaly)) {
+		t.Error("Expected breaker to trip after second anomaly")
+	}
+	duration = breaker.ResetDuration()
+	if duration < 1*time.Millisecond || 2*time.Millisecond < duration {
+		t.Errorf("Breaker is waiting for %s, expected it to wait for 1-2 ms", duration)
+	}
+
+}
+
 func TestHalfOpen(t *testing.T) {
 	params := CountBreakerParams{
 		MaxAnomalies: 1,
