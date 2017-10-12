@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hyPiRion/gluten/iox"
+	"github.com/hypirion/gluten/iox"
 )
 
 // CloseLocker is a read-write lock on top of a closable resource. All

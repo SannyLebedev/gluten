@@ -11,7 +11,7 @@ import (
 	"testing/quick"
 	"time"
 
-	"github.com/hyPiRion/gluten/iox"
+	"github.com/hypirion/gluten/iox"
 )
 
 const (
