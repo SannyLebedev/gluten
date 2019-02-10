@@ -233,17 +233,32 @@ func newAutoSuspendLocker(s iox.Suspender, slo *SuspendLockerOpts) SuspendLocker
 
 type autoSuspendLocker struct {
 	*rawSuspendLocker
-	maxIdle time.Duration
-	timer   *time.Timer
+	maxIdle   time.Duration
+	timer     *time.Timer
+	timerLock sync.Mutex
+}
+
+func (asl *autoSuspendLocker) stopTimer() bool {
+	asl.timerLock.Lock()
+	defer asl.timerLock.Unlock()
+	return asl.timer.Stop()
+}
+
+func (asl *autoSuspendLocker) resetTimer() bool {
+	asl.timerLock.Lock()
+	defer asl.timerLock.Unlock()
+	return asl.timer.Reset(asl.maxIdle)
 }
 
 func (asl *autoSuspendLocker) Close() error {
-	asl.timer.Stop()
+	asl.stopTimer()
 	return asl.rawSuspendLocker.Close()
 }
 
 func (asl *autoSuspendLocker) Lock() {
 	asl.rawSuspendLocker.Lock()
+	// No need to grab the lock for the timer here, as the lock we've grabbed
+	// denies anyone to do anything with the resource until we unlock it.
 	if !asl.rawSuspendLocker.closed {
 		asl.timer.Reset(asl.maxIdle)
 	}
@@ -254,6 +269,6 @@ func (asl *autoSuspendLocker) RLock() error {
 	if err != nil {
 		return err
 	}
-	asl.timer.Reset(asl.maxIdle)
+	asl.resetTimer()
 	return nil
 }
