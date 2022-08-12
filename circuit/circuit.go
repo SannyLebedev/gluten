@@ -204,7 +204,12 @@ func (c *CountBreaker) trip() bool {
 	// Exponential backoff with randomization to avoid a thundering herd
 	minTime := c.params.BackoffDuration << c.successiveFailures
 	maxTime := c.params.BackoffDuration << (c.successiveFailures + 1)
-	extraTime := time.Duration(rand.Int63n(int64(maxTime - minTime)))
+
+	extraTime := time.Duration(60 * time.Second)
+	if maxTime-minTime > 10 {
+		extraTime = time.Duration(rand.Int63n(int64(maxTime - minTime)))
+	}
+
 	totalTime := minTime + extraTime
 	if c.params.MaxBackoff <= totalTime {
 		totalTime = c.params.MaxBackoff
